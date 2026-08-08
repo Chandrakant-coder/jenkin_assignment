@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Calculator</title>
+<style>
+  :root{
+    --body-dark: #232323;
+    --body-light: #2f2f2f;
+    --screen-bg: #1a1f16;
+    --led: #d4ff5a;
+    --led-dim: #6d7a45;
+    --key-num: #3a3a3a;
+    --key-num-hi: #464646;
+    --key-op: #c8672f;
+    --key-op-hi: #d9793f;
+    --key-fn: #565040;
+    --key-fn-hi: #665f4c;
+    --edge: #141414;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    background: radial-gradient(circle at 30% 20%, #3a3a3a, #101010 75%);
+    font-family: 'Courier New', ui-monospace, monospace;
+  }
+
+  .calc{
+    width: 320px;
+    background: linear-gradient(160deg, var(--body-light), var(--body-dark));
+    border-radius: 18px;
+    padding: 22px 18px 26px;
+    box-shadow:
+      0 30px 60px rgba(0,0,0,0.6),
+      0 2px 0 rgba(255,255,255,0.05) inset,
+      0 -2px 0 rgba(0,0,0,0.4) inset;
+    border: 1px solid var(--edge);
+  }
+
+  .brand{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding: 0 4px 12px;
+    color:#9a9a9a;
+  }
+  .brand .name{
+    font-size:13px;
+    letter-spacing:3px;
+    font-weight:bold;
+    color:#cfcfcf;
+  }
+  .brand .model{
+    font-size:10px;
+    letter-spacing:2px;
+    color:#7a7a7a;
+  }
+
+  .screen{
+    background: var(--screen-bg);
+    border-radius: 8px;
+    padding: 18px 14px 10px;
+    margin-bottom: 16px;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.7), inset 0 0 0 1px #000;
+    text-align:right;
+    overflow:hidden;
+  }
+  .screen .history{
+    min-height: 16px;
+    font-size: 12px;
+    color: var(--led-dim);
+    letter-spacing:1px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .screen .display{
+    font-size: 38px;
+    color: var(--led);
+    text-shadow: 0 0 6px rgba(212,255,90,0.55), 0 0 18px rgba(212,255,90,0.25);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    min-height: 46px;
+    letter-spacing:1px;
+  }
+
+  .pad{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button{
+    border:none;
+    border-radius: 10px;
+    padding: 16px 0;
+    font-size: 17px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    color: #f1f1f1;
+    background: var(--key-num);
+    box-shadow:
+      0 3px 0 var(--edge),
+      0 4px 6px rgba(0,0,0,0.4);
+    transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
+  }
+  button:hover{ background: var(--key-num-hi); }
+  button:active{
+    transform: translateY(3px);
+    box-shadow: 0 0 0 var(--edge), 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  .op{ background: var(--key-op); color:#fff; }
+  .op:hover{ background: var(--key-op-hi); }
+
+  .fn{ background: var(--key-fn); color:#eee2c0; }
+  .fn:hover{ background: var(--key-fn-hi); }
+
+  .zero{ grid-column: span 2; }
+
+  .equals{
+    grid-column: span 2;
+    background: var(--key-op);
+  }
+  .equals:hover{ background: var(--key-op-hi); }
+
+  @media (max-width: 360px){
+    .calc{ width: 92vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="calc">
+  <div class="brand">
+    <span class="name">CALC//82</span>
+    <span class="model">SOLAR</span>
+  </div>
+
+  <div class="screen">
+    <div class="history" id="history">&nbsp;</div>
+    <div class="display" id="display">0</div>
+  </div>
+
+  <div class="pad">
+    <button class="fn" data-action="clear">AC</button>
+    <button class="fn" data-action="negate">+/-</button>
+    <button class="fn" data-action="percent">%</button>
+    <button class="op" data-op="/">÷</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="op" data-op="*">×</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="op" data-op="-">−</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button class="op" data-op="+">+</button>
+
+    <button class="zero" data-num="0">0</button>
+    <button data-action="decimal">.</button>
+    <button class="equals" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+  const displayEl = document.getElementById('display');
+  const historyEl = document.getElementById('history');
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let justEvaluated = false;
+
+  function updateDisplay(){
+    displayEl.textContent = current;
+    historyEl.textContent = previous !== null
+      ? `${formatNum(previous)} ${opSymbol(operator)}`
+      : '\u00A0';
+  }
+
+  function opSymbol(op){
+    return { '+':'+', '-':'−', '*':'×', '/':'÷' }[op] || '';
+  }
+
+  function formatNum(n){
+    if (n === null || n === undefined) return '';
+    const num = Number(n);
+    if (Number.isInteger(num)) return num.toString();
+    return parseFloat(num.toFixed(8)).toString();
+  }
+
+  function inputDigit(d){
+    if (justEvaluated){
+      current = d;
+      justEvaluated = false;
+      return;
+    }
+    if (current === '0') current = d;
+    else if (current.length < 14) current += d;
+  }
+
+  function inputDecimal(){
+    if (justEvaluated){
+      current = '0.';
+      justEvaluated = false;
+      return;
+    }
+    if (!current.includes('.')) current += '.';
+  }
+
+  function chooseOperator(op){
+    if (operator && previous !== null && !justEvaluated){
+      current = formatNum(compute());
+    }
+    previous = parseFloat(current);
+    operator = op;
+    justEvaluated = false;
+    current = '0';
+  }
+
+  function compute(){
+    const a = parseFloat(previous);
+    const b = parseFloat(current);
+    if (isNaN(a) || isNaN(b)) return b;
+    let result;
+    switch(operator){
+      case '+': result = a + b; break;
+      case '-': result = a - b; break;
+      case '*': result = a * b; break;
+      case '/': result = b === 0 ? NaN : a / b; break;
+      default: result = b;
+    }
+    return result;
+  }
+
+  function equals(){
+    if (operator === null || previous === null) return;
+    const result = compute();
+    current = isNaN(result) ? 'Error' : formatNum(result);
+    operator = null;
+    previous = null;
+    justEvaluated = true;
+  }
+
+  function clearAll(){
+    current = '0';
+    previous = null;
+    operator = null;
+    justEvaluated = false;
+  }
+
+  function negate(){
+    if (current === '0') return;
+    current = current.startsWith('-') ? current.slice(1) : '-' + current;
+  }
+
+  function percent(){
+    current = formatNum(parseFloat(current) / 100);
+  }
+
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const num = btn.dataset.num;
+      const op = btn.dataset.op;
+      const action = btn.dataset.action;
+
+      if (num !== undefined) inputDigit(num);
+      else if (op !== undefined) chooseOperator(op);
+      else if (action === 'clear') clearAll();
+      else if (action === 'negate') negate();
+      else if (action === 'percent') percent();
+      else if (action === 'decimal') inputDecimal();
+      else if (action === 'equals') equals();
+
+      updateDisplay();
+    });
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key >= '0' && e.key <= '9') inputDigit(e.key);
+    else if (e.key === '.') inputDecimal();
+    else if (['+','-','*','/'].includes(e.key)) chooseOperator(e.key);
+    else if (e.key === 'Enter' || e.key === '=') equals();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === 'Backspace'){
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+    } else return;
+    updateDisplay();
+  });
+
+  updateDisplay();
+</script>
+
+</body>
+</html>
